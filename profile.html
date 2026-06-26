@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile – StreamFlix</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .profile-layout{display:grid;grid-template-columns:300px 1fr;gap:24px;max-width:1200px;margin:0 auto;padding:24px}
+    .profile-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:28px;text-align:center;height:fit-content}
+    .profile-avatar{width:90px;height:90px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:2.25rem;font-weight:800;color:#fff;margin:0 auto 16px}
+    .profile-name{font-size:1.3rem;font-weight:700;margin-bottom:4px}
+    .profile-email{font-size:.875rem;color:var(--t2);margin-bottom:16px}
+    .profile-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;border-top:1px solid var(--border);padding-top:18px}
+    .p-stat{text-align:center}
+    .p-stat-num{font-size:1.4rem;font-weight:800;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .p-stat-lbl{font-size:.75rem;color:var(--t2);margin-top:2px}
+    @media(max-width:768px){.profile-layout{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="nav" id="navbar">
+  <a href="index.html" class="nav-logo">StreamFlix</a>
+  <div class="nav-search">
+    <input id="nav-search-input" type="text" placeholder="Search videos…">
+    <button class="nav-search-btn" id="nav-search-btn"><span class="material-icons">search</span></button>
+  </div>
+  <div class="nav-actions">
+    <a href="upload.html" class="btn btn-secondary"><span class="material-icons">upload</span></a>
+    <a href="auth.html"   class="btn btn-primary" id="nav-login-btn">Login</a>
+    <div class="dropdown" id="nav-user" style="display:none">
+      <div class="avatar" id="nav-avatar"></div>
+      <div class="dropdown-menu" id="nav-dd-menu">
+        <a href="analytics.html" class="dd-item"><span class="material-icons">bar_chart</span>Analytics</a>
+        <div class="dd-sep"></div>
+        <div class="dd-item" onclick="doLogout()"><span class="material-icons">logout</span>Logout</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="profile-layout">
+
+  <!-- Profile Card -->
+  <div>
+    <div class="profile-card">
+      <div class="profile-avatar" id="p-avatar">U</div>
+      <div class="profile-name"  id="p-name">Loading…</div>
+      <div class="profile-email" id="p-email"></div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <span class="badge badge-primary" id="p-role">USER</span>
+        <span class="badge badge-green">✓ Verified</span>
+      </div>
+      <div class="profile-stats">
+        <div class="p-stat"><div class="p-stat-num" id="p-total-videos">0</div><div class="p-stat-lbl">Videos</div></div>
+        <div class="p-stat"><div class="p-stat-num" id="p-total-views">0</div><div class="p-stat-lbl">Total Views</div></div>
+      </div>
+      <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px">
+        <a href="upload.html" class="btn btn-primary" style="justify-content:center"><span class="material-icons">upload</span>Upload Video</a>
+        <a href="analytics.html" class="btn btn-secondary" style="justify-content:center"><span class="material-icons">bar_chart</span>My Analytics</a>
+        <button class="btn btn-danger" style="width:100%;justify-content:center" onclick="doLogout()"><span class="material-icons">logout</span>Sign Out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- My Videos -->
+  <div>
+    <div class="section-hdr" style="margin-bottom:0">
+      <h2 class="section-title">My Videos</h2>
+      <a href="upload.html" class="btn btn-secondary btn-sm"><span class="material-icons">add</span>New</a>
+    </div>
+    <div class="video-grid" id="my-videos-grid" style="padding:20px 0">
+      <div class="loading"><div class="spinner"></div><span>Loading your videos…</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/api.js"></script>
+<script>
+  if (!Auth.isLoggedIn()) window.location.href = 'auth.html';
+
+  async function init() {
+    UI.initNav();
+    const username = Auth.getUsername() || 'User';
+    document.title = `${username} – StreamFlix`;
+
+    // Show basic info from localStorage
+    document.getElementById('p-avatar').textContent = username[0].toUpperCase();
+    document.getElementById('p-name').textContent   = username;
+    document.getElementById('p-email').textContent  = Auth.getEmail() || '';
+    document.getElementById('p-role').textContent   = Auth.getRole()  || 'USER';
+
+    // Load my videos
+    const grid   = document.getElementById('my-videos-grid');
+    const videos = await API.getMyVideos();
+    grid.innerHTML = '';
+
+    document.getElementById('p-total-videos').textContent = videos.length;
+
+    if (!videos.length) {
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+        <div class="empty-icon">🎬</div>
+        <div class="empty-title">No videos yet</div>
+        <div class="empty-text">Share your first video with the world!</div>
+        <a href="upload.html" class="btn btn-primary" style="margin-top:16px"><span class="material-icons">upload</span>Upload Now</a>
+      </div>`;
+      return;
+    }
+
+    let totalViews = 0;
+    videos.forEach(v => {
+      totalViews += (v.views || 0);
+      grid.appendChild(UI.videoCard(v));
+    });
+    document.getElementById('p-total-views').textContent = UI.fmtViews(totalViews);
+  }
+
+  init();
+</script>
+</body>
+</html>

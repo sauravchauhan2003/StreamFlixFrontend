@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search – StreamFlix</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="nav" id="navbar">
+  <a href="index.html" class="nav-logo">StreamFlix</a>
+  <div class="nav-search">
+    <input id="nav-search-input" type="text" placeholder="Search videos…">
+    <button class="nav-search-btn" id="nav-search-btn"><span class="material-icons">search</span></button>
+  </div>
+  <div class="nav-actions">
+    <a href="upload.html" class="btn btn-secondary"><span class="material-icons">upload</span></a>
+    <a href="auth.html"   class="btn btn-primary" id="nav-login-btn">Login</a>
+    <div class="dropdown" id="nav-user" style="display:none">
+      <div class="avatar" id="nav-avatar"></div>
+      <div class="dropdown-menu" id="nav-dd-menu">
+        <a href="profile.html" class="dd-item"><span class="material-icons">person</span>Profile</a>
+        <div class="dd-sep"></div>
+        <div class="dd-item" onclick="doLogout()"><span class="material-icons">logout</span>Logout</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="page-hdr">
+  <span class="material-icons">search</span>
+  <h1 id="search-heading">Search Results</h1>
+</div>
+
+<div class="section">
+  <div id="search-count" style="color:var(--t2);font-size:.875rem;margin-bottom:16px"></div>
+  <div class="video-grid" id="results-grid">
+    <div class="loading"><div class="spinner"></div><span>Searching…</span></div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+  const q = new URLSearchParams(window.location.search).get('q') || '';
+
+  async function doSearch() {
+    const heading = document.getElementById('search-heading');
+    const count   = document.getElementById('search-count');
+    const grid    = document.getElementById('results-grid');
+
+    if (!q.trim()) {
+      heading.textContent = 'Search';
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">Enter a search term</div>
+        <div class="empty-text">Use the search bar above</div>
+      </div>`;
+      return;
+    }
+
+    heading.textContent = `Results for "${q}"`;
+    document.title = `"${q}" – StreamFlix`;
+    document.getElementById('nav-search-input').value = q;
+
+    const results = await API.searchVideos(q);
+    grid.innerHTML = '';
+
+    if (!results.length) {
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+        <div class="empty-icon">😶</div>
+        <div class="empty-title">No results found</div>
+        <div class="empty-text">Try different keywords or <a href="index.html" style="color:var(--accent)">browse all videos</a></div>
+      </div>`;
+      count.textContent = '';
+      return;
+    }
+
+    count.textContent = `${results.length} result${results.length !== 1 ? 's' : ''} found`;
+    results.forEach(v => grid.appendChild(UI.videoCard(v)));
+  }
+
+  UI.initNav();
+  doSearch();
+</script>
+</body>
+</html>

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics – StreamFlix</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .analytics-page{max-width:1300px;margin:0 auto}
+    .tabs-row{display:flex;gap:0;border-bottom:1px solid var(--border);margin:0 24px 0}
+    .a-tab{padding:12px 22px;font-size:.875rem;font-weight:500;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;transition:var(--ease)}
+    .a-tab.active{color:var(--t1);border-bottom-color:var(--accent)}
+    .a-tab:hover:not(.active){color:var(--t2)}
+    .panel{display:none;animation:fadeUp .25s ease}.panel.active{display:block}
+    .chart-section{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin:0 24px 20px}
+    .chart-title{font-size:.9375rem;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+    .chart-title .material-icons{color:var(--accent)}
+    .rank-badge{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0}
+    .rank-1{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+    .rank-2{background:linear-gradient(135deg,#94a3b8,#64748b);color:#fff}
+    .rank-3{background:linear-gradient(135deg,#cd7f32,#92400e);color:#fff}
+    .rank-n{background:var(--bg-2);color:var(--t3)}
+    .video-row-link{display:flex;align-items:center;gap:14px;padding:12px;border-radius:var(--r-sm);cursor:pointer;transition:var(--ease);text-decoration:none;border-bottom:1px solid var(--border)}
+    .video-row-link:last-child{border-bottom:none}
+    .video-row-link:hover{background:var(--glass)}
+    .mini-thumb{width:100px;height:56px;border-radius:6px;overflow:hidden;flex-shrink:0;background:var(--bg-2)}
+    .mini-thumb img{width:100%;height:100%;object-fit:cover}
+    .sparkline{display:flex;align-items:flex-end;gap:3px;height:40px}
+    .spark-bar{flex:1;background:var(--grad);border-radius:2px 2px 0 0;transition:var(--ease);min-height:3px}
+    .legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+    .legend-item{display:flex;align-items:center;gap:6px;font-size:.8125rem;color:var(--t2)}
+    .legend-dot{width:10px;height:10px;border-radius:50%}
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="nav" id="navbar">
+  <a href="index.html" class="nav-logo">StreamFlix</a>
+  <div class="nav-search">
+    <input id="nav-search-input" type="text" placeholder="Search videos…">
+    <button class="nav-search-btn" id="nav-search-btn"><span class="material-icons">search</span></button>
+  </div>
+  <div class="nav-actions">
+    <a href="upload.html" class="btn btn-secondary"><span class="material-icons">upload</span></a>
+    <a href="auth.html"   class="btn btn-primary" id="nav-login-btn">Login</a>
+    <div class="dropdown" id="nav-user" style="display:none">
+      <div class="avatar" id="nav-avatar"></div>
+      <div class="dropdown-menu" id="nav-dd-menu">
+        <a href="profile.html" class="dd-item"><span class="material-icons">person</span>Profile</a>
+        <div class="dd-sep"></div>
+        <div class="dd-item" onclick="doLogout()"><span class="material-icons">logout</span>Logout</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="analytics-page">
+
+  <div class="page-hdr" style="justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="material-icons">bar_chart</span>
+      <h1>Analytics</h1>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-secondary btn-sm" onclick="refreshData()"><span class="material-icons">refresh</span>Refresh</button>
+    </div>
+  </div>
+
+  <!-- Tab switcher -->
+  <div class="tabs-row" style="margin-top:16px">
+    <div class="a-tab active" onclick="showPanel('overview')">📊 Overview</div>
+    <div class="a-tab" onclick="showPanel('top')">🔥 Top Videos</div>
+    <div class="a-tab" onclick="showPanel('engagement')">💬 Engagement</div>
+    <div class="a-tab" onclick="showPanel('my-stats')" id="my-stats-tab">👤 My Videos</div>
+  </div>
+
+  <!-- ── OVERVIEW PANEL ──────────────────────────────────────────────────── -->
+  <div class="panel active" id="panel-overview">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-icon material-icons">movie</span>
+        <div class="stat-num" id="s-videos">—</div>
+        <div class="stat-label">Total Videos</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon material-icons">visibility</span>
+        <div class="stat-num" id="s-views">—</div>
+        <div class="stat-label">Total Views</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon material-icons">thumb_up</span>
+        <div class="stat-num" id="s-likes">—</div>
+        <div class="stat-label">Total Likes</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon material-icons">thumb_down</span>
+        <div class="stat-num" id="s-dislikes">—</div>
+        <div class="stat-label">Total Dislikes</div>
+      </div>
+    </div>
+
+    <!-- Views bar chart -->
+    <div class="chart-section">
+      <div class="chart-title"><span class="material-icons">bar_chart</span>Views by Video (Top 10)</div>
+      <div class="bar-chart" id="views-chart">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Engagement rate -->
+    <div class="chart-section">
+      <div class="chart-title"><span class="material-icons">favorite</span>Likes vs Dislikes (Top 10)</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Likes</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Dislikes</div>
+      </div>
+      <div class="bar-chart" id="engagement-chart">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TOP VIDEOS PANEL ────────────────────────────────────────────────── -->
+  <div class="panel" id="panel-top">
+    <div style="padding:24px 24px 0;display:flex;align-items:center;justify-content:space-between">
+      <h2 class="section-title">🏆 Top Videos by Views</h2>
+      <select id="top-limit" class="form-input" style="width:120px;height:36px;padding:4px 12px" onchange="loadTopVideos()">
+        <option value="10">Top 10</option>
+        <option value="20">Top 20</option>
+        <option value="50">Top 50</option>
+      </select>
+    </div>
+    <div style="padding:16px 24px">
+      <div id="top-videos-list"><div class="loading"><div class="spinner"></div><span>Loading…</span></div></div>
+    </div>
+  </div>
+
+  <!-- ── ENGAGEMENT PANEL ────────────────────────────────────────────────── -->
+  <div class="panel" id="panel-engagement">
+    <div style="padding:24px">
+      <h2 class="section-title" style="margin-bottom:20px">💬 Engagement Breakdown</h2>
+      <div id="engagement-table-wrap">
+        <div class="loading"><div class="spinner"></div><span>Loading…</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MY STATS PANEL ──────────────────────────────────────────────────── -->
+  <div class="panel" id="panel-my-stats">
+    <div style="padding:24px">
+      <h2 class="section-title" style="margin-bottom:8px">👤 My Video Performance</h2>
+      <p style="color:var(--t2);font-size:.875rem;margin-bottom:20px">Stats for videos uploaded by you</p>
+      <div id="my-stats-content">
+        <div class="loading"><div class="spinner"></div><span>Loading…</span></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /analytics-page -->
+
+<script src="js/api.js"></script>
+<script>
+  let topData = [];
+
+  function showPanel(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.a-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    event.target.classList.add('active');
+    if (id === 'top')        loadTopVideos();
+    if (id === 'engagement') loadEngagementTable();
+    if (id === 'my-stats')   loadMyStats();
+  }
+
+  async function loadSummary() {
+    const s = await API.getAnalyticsSummary();
+    if (!s) return;
+    document.getElementById('s-videos').textContent   = UI.fmtViews(s.totalVideos   ?? 0);
+    document.getElementById('s-views').textContent    = UI.fmtViews(s.totalViews    ?? 0);
+    document.getElementById('s-likes').textContent    = UI.fmtViews(s.totalLikes    ?? 0);
+    document.getElementById('s-dislikes').textContent = UI.fmtViews(s.totalDislikes ?? 0);
+  }
+
+  async function loadCharts() {
+    topData = await API.getTopAnalytics(10);
+    if (!topData.length) {
+      document.getElementById('views-chart').innerHTML     = '<div class="empty"><div class="empty-icon">📊</div><div class="empty-title">No data yet</div></div>';
+      document.getElementById('engagement-chart').innerHTML = '<div class="empty"><div class="empty-icon">💬</div><div class="empty-title">No data yet</div></div>';
+      return;
+    }
+
+    // Views bar chart
+    const maxViews = Math.max(...topData.map(v => v.views ?? 0), 1);
+    const vChart = document.getElementById('views-chart');
+    vChart.innerHTML = '';
+    topData.forEach(v => {
+      const pct = Math.max(((v.views ?? 0) / maxViews * 100).toFixed(1), 2);
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `
+        <div class="bar-lbl" title="${escHtml(v.title)}">${escHtml(v.title)}</div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%">
+            <span class="bar-fill-val">${UI.fmtViews(v.views)}</span>
+          </div>
+        </div>
+        <div class="bar-num">${UI.fmtViews(v.views)}</div>`;
+      vChart.appendChild(row);
+    });
+
+    // Engagement chart (likes)
+    const maxLikes = Math.max(...topData.map(v => (v.likes ?? 0) + (v.dislikes ?? 0)), 1);
+    const eChart = document.getElementById('engagement-chart');
+    eChart.innerHTML = '';
+    topData.forEach(v => {
+      const lPct = Math.max(((v.likes    ?? 0) / maxLikes * 100).toFixed(1), 1);
+      const dPct = Math.max(((v.dislikes ?? 0) / maxLikes * 100).toFixed(1), 1);
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      row.innerHTML = `
+        <div class="bar-lbl" title="${escHtml(v.title)}">${escHtml(v.title)}</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+          <div class="bar-track" style="height:12px">
+            <div class="bar-fill" style="width:${lPct}%;background:#8b5cf6"></div>
+          </div>
+          <div class="bar-track" style="height:12px">
+            <div class="bar-fill" style="width:${dPct}%;background:#ef4444"></div>
+          </div>
+        </div>
+        <div class="bar-num" style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;font-size:.72rem">
+          <span style="color:#a78bfa">${v.likes ?? 0} 👍</span>
+          <span style="color:#f87171">${v.dislikes ?? 0} 👎</span>
+        </div>`;
+      eChart.appendChild(row);
+    });
+  }
+
+  async function loadTopVideos() {
+    const limit = parseInt(document.getElementById('top-limit')?.value || '10');
+    const list  = document.getElementById('top-videos-list');
+    list.innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading…</span></div>';
+    const data = await API.getTopAnalytics(limit);
+    if (!data.length) {
+      list.innerHTML = '<div class="empty"><div class="empty-icon">🏆</div><div class="empty-title">No videos yet</div></div>';
+      return;
+    }
+    list.innerHTML = '';
+    data.forEach((v, i) => {
+      const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-n';
+      const a = document.createElement('a');
+      a.href      = API.watchUrl(v.videoId);
+      a.className = 'video-row-link';
+      a.innerHTML = `
+        <div class="rank-badge ${rankClass}">${i + 1}</div>
+        <div class="mini-thumb">
+          <img src="${API.thumbnailUrl(v.videoId)}" alt="${escHtml(v.title)}"
+               onerror="this.style.display='none'">
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:.9rem;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(v.title)}</div>
+          <div style="font-size:.8rem;color:var(--t2)">${escHtml(v.uploader)} · Uploaded ${UI.fmtDate(v.uploadedAt)}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,80px);gap:8px;text-align:center;flex-shrink:0">
+          <div><div style="font-size:1rem;font-weight:700;color:var(--accent-2)">${UI.fmtViews(v.views)}</div><div style="font-size:.72rem;color:var(--t3)">Views</div></div>
+          <div><div style="font-size:1rem;font-weight:700;color:#34d399">${v.likes ?? 0}</div><div style="font-size:.72rem;color:var(--t3)">Likes</div></div>
+          <div><div style="font-size:1rem;font-weight:700;color:#f87171">${v.dislikes ?? 0}</div><div style="font-size:.72rem;color:var(--t3)">Dislikes</div></div>
+        </div>`;
+      list.appendChild(a);
+    });
+  }
+
+  async function loadEngagementTable() {
+    const wrap = document.getElementById('engagement-table-wrap');
+    const data = await API.getTopAnalytics(20);
+    if (!data.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-icon">💬</div><div class="empty-title">No data yet</div></div>';
+      return;
+    }
+    wrap.innerHTML = `
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr>
+            <th>#</th><th>Title</th><th>Uploader</th>
+            <th>Views</th><th>👍 Likes</th><th>👎 Dislikes</th>
+            <th>Engagement %</th><th>Like Ratio</th>
+          </tr></thead>
+          <tbody id="eng-tbody"></tbody>
+        </table>
+      </div>`;
+    const tbody = document.getElementById('eng-tbody');
+    data.forEach((v, i) => {
+      const total = (v.likes ?? 0) + (v.dislikes ?? 0);
+      const engRate = v.views > 0 ? ((total / v.views) * 100).toFixed(1) : '0';
+      const likeRatio = total > 0 ? (((v.likes ?? 0) / total) * 100).toFixed(1) : '—';
+      const ratioColor = +likeRatio > 70 ? '#34d399' : +likeRatio > 40 ? '#fbbf24' : '#f87171';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="color:var(--t3)">${i + 1}</td>
+        <td><a href="${API.watchUrl(v.videoId)}" style="color:var(--accent-2);font-weight:500">${escHtml(v.title)}</a></td>
+        <td style="color:var(--t2)">${escHtml(v.uploader)}</td>
+        <td class="num">${UI.fmtViews(v.views)}</td>
+        <td><span style="color:#34d399;font-weight:600">${v.likes ?? 0}</span></td>
+        <td><span style="color:#f87171;font-weight:600">${v.dislikes ?? 0}</span></td>
+        <td class="num">${engRate}%</td>
+        <td><span style="color:${ratioColor};font-weight:600">${likeRatio}%</span></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function loadMyStats() {
+    if (!Auth.isLoggedIn()) {
+      document.getElementById('my-stats-content').innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">🔒</div>
+          <div class="empty-title">Login to see your stats</div>
+          <a href="auth.html" class="btn btn-primary" style="margin-top:14px">Sign In</a>
+        </div>`;
+      return;
+    }
+    const content = document.getElementById('my-stats-content');
+    const videos = await API.getMyVideos();
+    if (!videos.length) {
+      content.innerHTML = `<div class="empty">
+        <div class="empty-icon">📤</div>
+        <div class="empty-title">No videos uploaded yet</div>
+        <a href="upload.html" class="btn btn-primary" style="margin-top:14px"><span class="material-icons">upload</span>Upload Your First Video</a>
+      </div>`;
+      return;
+    }
+
+    // Get analytics for each video
+    const analyticsPromises = videos.map(v => API.getVideoAnalytics(v.id));
+    const analyticsAll = await Promise.all(analyticsPromises);
+
+    let totalViews = 0, totalLikes = 0, totalDislikes = 0;
+    analyticsAll.forEach(a => {
+      if (a) { totalViews += (a.views ?? 0); totalLikes += (a.likes ?? 0); totalDislikes += (a.dislikes ?? 0); }
+    });
+
+    content.innerHTML = `
+      <div class="stats-grid" style="padding:0;margin-bottom:20px">
+        <div class="stat-card"><div class="stat-num">${videos.length}</div><div class="stat-label">Videos Uploaded</div></div>
+        <div class="stat-card"><div class="stat-num">${UI.fmtViews(totalViews)}</div><div class="stat-label">Total Views</div></div>
+        <div class="stat-card"><div class="stat-num">${UI.fmtViews(totalLikes)}</div><div class="stat-label">Total Likes</div></div>
+        <div class="stat-card"><div class="stat-num">${UI.fmtViews(totalDislikes)}</div><div class="stat-label">Total Dislikes</div></div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th>#</th><th>Title</th><th>Views</th><th>Likes</th><th>Dislikes</th><th>Uploaded</th></tr></thead>
+          <tbody id="my-tbody"></tbody>
+        </table>
+      </div>`;
+
+    const tbody = document.getElementById('my-tbody');
+    videos.forEach((v, i) => {
+      const a = analyticsAll[i];
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="color:var(--t3)">${i + 1}</td>
+        <td><a href="${API.watchUrl(v.id)}" style="color:var(--accent-2);font-weight:500">${escHtml(v.title)}</a></td>
+        <td class="num">${UI.fmtViews(a?.views ?? v.views ?? 0)}</td>
+        <td><span style="color:#34d399;font-weight:600">${a?.likes ?? 0}</span></td>
+        <td><span style="color:#f87171;font-weight:600">${a?.dislikes ?? 0}</span></td>
+        <td style="color:var(--t2);font-size:.8rem">${UI.fmtDate(v.uploadedAt)}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function refreshData() {
+    await loadSummary();
+    await loadCharts();
+  }
+
+  UI.initNav();
+  loadSummary();
+  loadCharts();
+</script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StreamFlix – Sign In / Sign Up</title>
+  <meta name="description" content="Sign in or create a StreamFlix account to upload and interact with videos.">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    body{display:flex;align-items:center;justify-content:center;min-height:100vh;
+         background:radial-gradient(ellipse at 30% 20%,rgba(139,92,246,.15),transparent 55%),
+                   radial-gradient(ellipse at 80% 80%,rgba(236,72,153,.1),transparent 50%),var(--bg)}
+    .auth-box{width:100%;max-width:460px;padding:20px}
+    .auth-logo{font-size:2rem;font-weight:800;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:6px}
+    .auth-tagline{text-align:center;color:var(--t2);font-size:.9rem;margin-bottom:28px}
+    .auth-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:32px;backdrop-filter:blur(12px)}
+    .step{display:none}.step.active{display:block;animation:fadeUp .25s ease}
+    .divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--t3);font-size:.8rem}
+    .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+    .alt-link{text-align:center;font-size:.875rem;color:var(--t2);margin-top:18px;cursor:pointer}
+    .alt-link span{color:var(--accent-2);font-weight:600;cursor:pointer}
+    .otp-inputs{display:flex;gap:10px;justify-content:center;margin:18px 0}
+    .otp-digit{width:48px;height:56px;text-align:center;font-size:1.4rem;font-weight:700;
+               background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--t1);outline:none;transition:var(--ease)}
+    .otp-digit:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(139,92,246,.2)}
+  </style>
+</head>
+<body>
+<div class="auth-box">
+  <div class="auth-logo">StreamFlix</div>
+  <div class="auth-tagline">Your universe of videos</div>
+
+  <div class="auth-card">
+    <!-- Login Step -->
+    <div class="step active" id="step-login">
+      <div class="tabs">
+        <div class="tab active" id="tab-login" onclick="showLogin()">Sign In</div>
+        <div class="tab"        id="tab-reg"   onclick="showRegister()">Sign Up</div>
+      </div>
+
+      <div id="login-alert" class="alert" style="display:none"></div>
+
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input id="login-user" class="form-input" type="text" placeholder="Your username" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input id="login-pass" class="form-input" type="password" placeholder="Your password" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" id="login-btn" onclick="doLogin()">
+        <span class="material-icons">login</span> Sign In
+      </button>
+      <div class="alt-link" onclick="showForgot()">Forgot password? <span>Recover it</span></div>
+    </div>
+
+    <!-- Register Step -->
+    <div class="step" id="step-register">
+      <div class="tabs">
+        <div class="tab"        id="tab-login2" onclick="showLogin()">Sign In</div>
+        <div class="tab active" id="tab-reg2"   onclick="showRegister()">Sign Up</div>
+      </div>
+
+      <div id="reg-alert" class="alert" style="display:none"></div>
+
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input id="reg-user" class="form-input" type="text" placeholder="Choose a username">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input id="reg-email" class="form-input" type="email" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input id="reg-pass" class="form-input" type="password" placeholder="Strong password">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" id="reg-btn" onclick="doRegister()">
+        <span class="material-icons">person_add</span> Create Account
+      </button>
+    </div>
+
+    <!-- OTP Verification Step -->
+    <div class="step" id="step-otp">
+      <div style="text-align:center">
+        <span class="material-icons" style="font-size:3rem;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent">mark_email_read</span>
+        <h2 style="margin:12px 0 6px;font-size:1.3rem">Verify Your Email</h2>
+        <p style="color:var(--t2);font-size:.9rem">We've sent a 6-digit OTP to <strong id="otp-email-display"></strong></p>
+      </div>
+      <div id="otp-alert" class="alert" style="display:none;margin-top:14px"></div>
+      <div class="otp-inputs" id="otp-inputs">
+        <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+        <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doVerifyOtp()">
+        <span class="material-icons">verified</span> Verify OTP
+      </button>
+      <div class="alt-link" onclick="showLogin()">Already verified? <span>Sign In</span></div>
+    </div>
+
+    <!-- Forgot Password Step -->
+    <div class="step" id="step-forgot">
+      <div style="text-align:center;margin-bottom:20px">
+        <span class="material-icons" style="font-size:3rem;color:var(--accent)">lock_reset</span>
+        <h2 style="margin:12px 0 6px;font-size:1.3rem">Recover Password</h2>
+        <p style="color:var(--t2);font-size:.9rem">We'll email your password to you</p>
+      </div>
+      <div id="forgot-alert" class="alert" style="display:none"></div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input id="forgot-email" class="form-input" type="email" placeholder="your@email.com">
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doForgot()">
+        <span class="material-icons">send</span> Send Password
+      </button>
+      <div class="alt-link" onclick="showLogin()">← <span>Back to Sign In</span></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+  // Redirect if already logged in
+  if (Auth.isLoggedIn()) window.location.href = 'index.html';
+
+  let pendingEmail = '';
+
+  function showStep(id) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+  function showLogin()    { showStep('step-login'); }
+  function showRegister() { showStep('step-register'); }
+  function showForgot()   { showStep('step-forgot'); }
+
+  // OTP digit auto-advance
+  document.querySelectorAll('.otp-digit').forEach((inp, i, all) => {
+    inp.addEventListener('input', () => {
+      if (inp.value && i < all.length - 1) all[i + 1].focus();
+    });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !inp.value && i > 0) all[i - 1].focus();
+    });
+  });
+
+  async function doLogin() {
+    const btn  = document.getElementById('login-btn');
+    const al   = document.getElementById('login-alert');
+    const user = document.getElementById('login-user').value.trim();
+    const pass = document.getElementById('login-pass').value;
+    if (!user || !pass) { UI.showAlert(al, 'error', 'Please fill in all fields'); return; }
+    btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px"></div>';
+    const { status, data } = await API.login(user, pass);
+    btn.disabled = false; btn.innerHTML = '<span class="material-icons">login</span> Sign In';
+    if (status === 200 && data?.token) {
+      Auth.set(data.token, data.username, data.email, data.role);
+      window.location.href = 'index.html';
+    } else {
+      UI.showAlert(al, 'error', data?.error || 'Login failed. Check credentials.');
+    }
+  }
+
+  async function doRegister() {
+    const btn  = document.getElementById('reg-btn');
+    const al   = document.getElementById('reg-alert');
+    const user  = document.getElementById('reg-user').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const pass  = document.getElementById('reg-pass').value;
+    if (!user || !email || !pass) { UI.showAlert(al, 'error', 'Please fill in all fields'); return; }
+    btn.disabled = true; btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px"></div>';
+    const { status, data } = await API.register(user, email, pass);
+    btn.disabled = false; btn.innerHTML = '<span class="material-icons">person_add</span> Create Account';
+    if (status === 200) {
+      pendingEmail = email;
+      document.getElementById('otp-email-display').textContent = email;
+      showStep('step-otp');
+    } else {
+      UI.showAlert(al, 'error', data || 'Registration failed');
+    }
+  }
+
+  async function doVerifyOtp() {
+    const al  = document.getElementById('otp-alert');
+    const otp = [...document.querySelectorAll('.otp-digit')].map(i => i.value).join('');
+    if (otp.length < 6) { UI.showAlert(al, 'error', 'Enter all 6 digits'); return; }
+    const { status, data } = await API.verifyOtp(pendingEmail, otp);
+    if (status === 200) {
+      UI.showAlert(al, 'success', 'Email verified! You can now sign in.');
+      setTimeout(showLogin, 1500);
+    } else {
+      UI.showAlert(al, 'error', data || 'Invalid OTP');
+    }
+  }
+
+  async function doForgot() {
+    const al    = document.getElementById('forgot-alert');
+    const email = document.getElementById('forgot-email').value.trim();
+    if (!email) { UI.showAlert(al, 'error', 'Enter your email'); return; }
+    const { status, data } = await API.forgotPassword(email);
+    if (status === 200) {
+      UI.showAlert(al, 'success', 'Password sent to your email!');
+    } else {
+      UI.showAlert(al, 'error', data || 'Email not found');
+    }
+  }
+
+  // Enter key support
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (document.getElementById('step-login').classList.contains('active'))    doLogin();
+    if (document.getElementById('step-register').classList.contains('active')) doRegister();
+  });
+</script>
+</body>
+</html>

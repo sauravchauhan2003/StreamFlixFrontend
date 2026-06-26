@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload Video – StreamFlix</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .upload-layout{display:grid;grid-template-columns:1fr 340px;gap:24px;max-width:1100px;margin:0 auto;padding:24px}
+    .thumb-zone{border:2px dashed var(--border);border-radius:var(--r);aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;transition:var(--ease);background:var(--bg-2)}
+    .thumb-zone:hover{border-color:var(--accent)}
+    .thumb-zone img{width:100%;height:100%;object-fit:cover}
+    .thumb-ph{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--t3);text-align:center;padding:16px}
+    .status-box{padding:16px;border-radius:var(--r-sm);background:var(--bg-2);border:1px solid var(--border);display:none}
+    .status-box.show{display:block}
+    .status-steps div{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:.875rem;color:var(--t2);border-bottom:1px solid var(--border)}
+    .status-steps div:last-child{border-bottom:none}
+    .step-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+    .step-done{background:rgba(16,185,129,.2);color:#34d399}
+    .step-active{background:rgba(139,92,246,.2);color:var(--accent-2)}
+    .step-wait{background:var(--bg-card);color:var(--t3)}
+    @media(max-width:768px){.upload-layout{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="nav" id="navbar">
+  <a href="index.html" class="nav-logo">StreamFlix</a>
+  <div class="nav-search">
+    <input id="nav-search-input" type="text" placeholder="Search videos…">
+    <button class="nav-search-btn" id="nav-search-btn"><span class="material-icons">search</span></button>
+  </div>
+  <div class="nav-actions">
+    <a href="auth.html" class="btn btn-primary" id="nav-login-btn">Login</a>
+    <div class="dropdown" id="nav-user" style="display:none">
+      <div class="avatar" id="nav-avatar"></div>
+      <div class="dropdown-menu" id="nav-dd-menu">
+        <a href="profile.html" class="dd-item"><span class="material-icons">person</span>Profile</a>
+        <div class="dd-sep"></div>
+        <div class="dd-item" onclick="doLogout()"><span class="material-icons">logout</span>Logout</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="page-hdr">
+  <span class="material-icons">upload_file</span>
+  <h1>Upload Video</h1>
+</div>
+
+<div class="upload-layout">
+  <!-- Left: Form -->
+  <div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">📹 Select Video File</div>
+      <div class="dropzone" id="video-drop" onclick="document.getElementById('video-input').click()">
+        <div class="dropzone-icon">🎬</div>
+        <div class="dropzone-text">Drag & drop your video here</div>
+        <div class="dropzone-sub">MP4, MKV, MOV, AVI — up to 100MB</div>
+      </div>
+      <input id="video-input" type="file" accept="video/*" style="display:none">
+      <div id="file-info" style="display:none;margin-top:12px" class="file-info">
+        <span class="material-icons">movie</span>
+        <span id="file-name"></span>
+        <span id="file-size" style="color:var(--t3);margin-left:auto"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📝 Video Details</div>
+      <div id="upload-alert" class="alert" style="display:none"></div>
+
+      <div class="form-group">
+        <label class="form-label">Title <span style="color:var(--red)">*</span></label>
+        <input id="vid-title" class="form-input" type="text" placeholder="Give your video a great title…" maxlength="150">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category <span style="color:var(--red)">*</span></label>
+        <select id="vid-category" class="form-input" style="appearance:none;background:var(--bg-2)">
+          <option value="all">Uncategorized</option>
+          <option value="trending">🔥 Trending</option>
+          <option value="gaming">🎮 Gaming</option>
+          <option value="music">🎵 Music</option>
+          <option value="education">📚 Education</option>
+          <option value="sports">⚽ Sports</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description <span style="color:var(--red)">*</span></label>
+        <textarea id="vid-desc" class="form-input form-textarea" placeholder="Tell viewers about your video…" maxlength="2000"></textarea>
+      </div>
+
+      <div id="prog-section" style="display:none;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:.875rem;color:var(--t2)">Uploading…</span>
+          <span id="prog-pct" style="font-size:.875rem;font-weight:600;color:var(--accent-2)">0%</span>
+        </div>
+        <div class="prog-wrap"><div class="prog-bar" id="prog-bar"></div></div>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;justify-content:center" id="upload-btn" onclick="doUpload()">
+        <span class="material-icons">cloud_upload</span> Upload Video
+      </button>
+    </div>
+  </div>
+
+  <!-- Right: Thumbnail + Status -->
+  <div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">🖼️ Thumbnail</div>
+      <div class="thumb-zone" id="thumb-zone" onclick="document.getElementById('thumb-input').click()">
+        <div class="thumb-ph">
+          <span class="material-icons" style="font-size:2.5rem;opacity:.3">add_photo_alternate</span>
+          <div style="font-size:.875rem;color:var(--t2)">Upload custom thumbnail</div>
+          <div style="font-size:.8rem;color:var(--t3)">Or we'll auto-extract from video</div>
+        </div>
+      </div>
+      <input id="thumb-input" type="file" accept="image/*" style="display:none">
+      <div id="thumb-note" class="alert alert-info" style="margin-top:12px;display:none">
+        <span class="material-icons">auto_awesome</span>Thumbnail will be auto-extracted from 5s mark
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="status-box" id="status-box">
+      <div style="font-weight:600;margin-bottom:12px">Processing Status</div>
+      <div class="status-steps">
+        <div id="s1"><div class="step-icon step-wait" id="s1-icon">1</div>Uploading file</div>
+        <div id="s2"><div class="step-icon step-wait" id="s2-icon">2</div>Extracting thumbnail</div>
+        <div id="s3"><div class="step-icon step-wait" id="s3-icon">3</div>Processing HLS (background)</div>
+        <div id="s4"><div class="step-icon step-wait" id="s4-icon">4</div>Video ready</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+  // Auth guard
+  if (!Auth.isLoggedIn()) window.location.href = 'auth.html';
+
+  const MAX_VIDEO_SIZE = 100 * 1024 * 1024;  // 100 MB
+  const MAX_THUMB_SIZE =  10 * 1024 * 1024;  //  10 MB
+  let videoFile = null, thumbFile = null;
+
+  // Video file pick
+  document.getElementById('video-input').addEventListener('change', e => {
+    videoFile = e.target.files[0];
+    if (!videoFile) return;
+
+    // ── Client-side size check ──
+    if (videoFile.size > MAX_VIDEO_SIZE) {
+      UI.showAlert(document.getElementById('upload-alert'), 'error',
+        `Video file is too large (${(videoFile.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed is 100 MB.`);
+      videoFile = null;
+      e.target.value = '';
+      return;
+    }
+
+    const drop = document.getElementById('video-drop');
+    drop.style.background   = 'rgba(139,92,246,.06)';
+    drop.style.borderColor  = 'var(--accent)';
+    document.getElementById('file-info').style.display = 'flex';
+    document.getElementById('file-name').textContent   = videoFile.name;
+    document.getElementById('file-size').textContent   = (videoFile.size / 1024 / 1024).toFixed(1) + ' MB';
+    if (!thumbFile) document.getElementById('thumb-note').style.display = 'flex';
+    UI.hideAlert(document.getElementById('upload-alert'));
+  });
+
+  // Drag and drop
+  const dropZone = document.getElementById('video-drop');
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('video/')) {
+      document.getElementById('video-input').files = e.dataTransfer.files;
+      document.getElementById('video-input').dispatchEvent(new Event('change'));
+    }
+  });
+
+  // Thumbnail pick
+  document.getElementById('thumb-input').addEventListener('change', e => {
+    thumbFile = e.target.files[0];
+    if (!thumbFile) return;
+
+    // ── Client-side size check ──
+    if (thumbFile.size > MAX_THUMB_SIZE) {
+      UI.showAlert(document.getElementById('upload-alert'), 'error',
+        `Thumbnail is too large (${(thumbFile.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed is 10 MB.`);
+      thumbFile = null;
+      e.target.value = '';
+      return;
+    }
+
+    const zone = document.getElementById('thumb-zone');
+    const reader = new FileReader();
+    reader.onload = ev => {
+      zone.innerHTML = `<img src="${ev.target.result}" alt="Thumbnail preview">`;
+    };
+    reader.readAsDataURL(thumbFile);
+    document.getElementById('thumb-note').style.display = 'none';
+    UI.hideAlert(document.getElementById('upload-alert'));
+  });
+
+  function setStep(n, state) {
+    const icon = document.getElementById(`s${n}-icon`);
+    icon.className = `step-icon step-${state}`;
+    icon.textContent = state === 'done' ? '✓' : n;
+  }
+
+  async function doUpload() {
+    const alert    = document.getElementById('upload-alert');
+    const title    = document.getElementById('vid-title').value.trim();
+    const desc     = document.getElementById('vid-desc').value.trim();
+    const category = document.getElementById('vid-category').value;
+    const btn      = document.getElementById('upload-btn');
+
+    UI.hideAlert(alert);
+    if (!videoFile) { UI.showAlert(alert, 'error', 'Please select a video file'); return; }
+    if (!title)     { UI.showAlert(alert, 'error', 'Please enter a title');        return; }
+    if (!desc)      { UI.showAlert(alert, 'error', 'Please enter a description');  return; }
+
+    // ── Final size checks before upload ──
+    if (videoFile.size > MAX_VIDEO_SIZE) {
+      UI.showAlert(alert, 'error', 'Video file exceeds 100 MB limit. Please select a smaller file.');
+      return;
+    }
+    if (thumbFile && thumbFile.size > MAX_THUMB_SIZE) {
+      UI.showAlert(alert, 'error', 'Thumbnail exceeds 10 MB limit. Please select a smaller image.');
+      return;
+    }
+
+    // Build FormData
+    const fd = new FormData();
+    fd.append('file', videoFile);
+    if (thumbFile) fd.append('thumbnail', thumbFile);
+
+    // UI
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px"></div> Uploading…';
+    document.getElementById('prog-section').style.display = 'block';
+    document.getElementById('status-box').classList.add('show');
+    setStep(1, 'active');
+
+    const { status, data } = await API.uploadVideo(
+      fd, { title, desc, category },
+      pct => {
+        document.getElementById('prog-bar').style.width = pct + '%';
+        document.getElementById('prog-pct').textContent  = pct + '%';
+      }
+    );
+
+    if (status === 200) {
+      setStep(1, 'done'); setStep(2, 'active');
+      setTimeout(() => { setStep(2, 'done'); setStep(3, 'active'); }, 800);
+      setTimeout(() => { setStep(3, 'done'); setStep(4, 'active'); }, 2000);
+      setTimeout(() => {
+        setStep(4, 'done');
+        UI.showAlert(alert, 'success', '🎉 Video uploaded! HLS processing continues in the background.');
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-icons">cloud_upload</span> Upload Another';
+      }, 3000);
+    } else if (status === 413) {
+      setStep(1, 'wait');
+      UI.showAlert(alert, 'error', data || 'File too large. Maximum video size is 100 MB.');
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-icons">cloud_upload</span> Upload Video';
+      document.getElementById('prog-section').style.display = 'none';
+    } else if (status === 429) {
+      setStep(1, 'wait');
+      UI.showAlert(alert, 'warn', 'Too many requests. Please wait a moment and try again.');
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-icons">cloud_upload</span> Upload Video';
+      document.getElementById('prog-section').style.display = 'none';
+    } else {
+      setStep(1, 'wait');
+      UI.showAlert(alert, 'error', data || 'Upload failed. Please try again.');
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-icons">cloud_upload</span> Upload Video';
+      document.getElementById('prog-section').style.display = 'none';
+    }
+  }
+
+  UI.initNav();
+</script>
+</body>
+</html>

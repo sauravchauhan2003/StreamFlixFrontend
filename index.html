@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StreamFlix – Watch, Share & Discover</title>
+  <meta name="description" content="StreamFlix – High-quality video streaming platform. Watch trending videos in 240p to 1080p HLS streaming.">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .categories{display:flex;gap:8px;padding:0 24px 20px;flex-wrap:wrap}
+    .cat-btn{padding:6px 16px;border-radius:999px;background:var(--bg-card);border:1px solid var(--border);
+             color:var(--t2);font-size:.8125rem;cursor:pointer;transition:var(--ease)}
+    .cat-btn.active,.cat-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+    .load-more{display:block;width:fit-content;margin:0 auto 40px}
+    #hero-video{cursor:pointer;transition:var(--ease)}
+    #hero-video:hover .btn-primary{transform:translateY(-2px)}
+  </style>
+</head>
+<body>
+
+<!-- ── Navbar ─────────────────────────────────────────────────────────────── -->
+<nav class="nav" id="navbar">
+  <a href="index.html" class="nav-logo">StreamFlix</a>
+  <div class="nav-search">
+    <input id="nav-search-input" type="text" placeholder="Search videos…">
+    <button class="nav-search-btn" id="nav-search-btn"><span class="material-icons">search</span></button>
+  </div>
+  <div class="nav-actions">
+    <a href="analytics.html" class="btn btn-ghost"><span class="material-icons">bar_chart</span><span class="hide-sm">Analytics</span></a>
+    <a href="upload.html"    class="btn btn-secondary" id="upload-nav-btn"><span class="material-icons">upload</span><span class="hide-sm">Upload</span></a>
+    <a href="auth.html"      class="btn btn-primary"   id="nav-login-btn">Login</a>
+    <div class="dropdown" id="nav-user" style="display:none">
+      <div class="avatar" id="nav-avatar"></div>
+      <div class="dropdown-menu" id="nav-dd-menu">
+        <a href="profile.html"   class="dd-item"><span class="material-icons">person</span>Profile</a>
+        <a href="upload.html"    class="dd-item"><span class="material-icons">upload</span>Upload Video</a>
+        <a href="analytics.html" class="dd-item"><span class="material-icons">bar_chart</span>Analytics</a>
+        <div class="dd-sep"></div>
+        <div class="dd-item" onclick="doLogout()"><span class="material-icons">logout</span>Logout</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ───────────────────────────────────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-label">🎬 Your Streaming Destination</div>
+  <div class="hero-title">Watch Anything, Anytime<br>In Stunning Quality</div>
+  <div class="hero-sub">Stream in HLS adaptive bitrate — from 240p to 1080p — with instant playback.</div>
+  <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
+    <a href="auth.html" class="btn btn-primary" id="hero-cta"><span class="material-icons">play_arrow</span>Get Started Free</a>
+    <a href="#feed"     class="btn btn-secondary"><span class="material-icons">explore</span>Browse Videos</a>
+  </div>
+</div>
+
+<!-- ── Category Filter ────────────────────────────────────────────────────── -->
+<div class="categories" id="categories">
+  <button class="cat-btn active" data-cat="all">All</button>
+  <button class="cat-btn" data-cat="trending">🔥 Trending</button>
+  <button class="cat-btn" data-cat="gaming">🎮 Gaming</button>
+  <button class="cat-btn" data-cat="music">🎵 Music</button>
+  <button class="cat-btn" data-cat="education">📚 Education</button>
+  <button class="cat-btn" data-cat="sports">⚽ Sports</button>
+</div>
+
+<!-- ── Video Feed ─────────────────────────────────────────────────────────── -->
+<div id="feed">
+  <div class="section-hdr" style="padding:0 24px 12px">
+    <h2 class="section-title">🔥 Most Popular</h2>
+    <span id="video-count" style="font-size:.875rem;color:var(--t2)"></span>
+  </div>
+  <div class="video-grid" id="video-grid">
+    <div class="loading"><div class="spinner"></div><span>Loading videos…</span></div>
+  </div>
+  <button class="btn btn-secondary load-more" id="load-more-btn" style="display:none">
+    <span class="material-icons">expand_more</span> Load More
+  </button>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+  UI.initNav();
+  let page = 0, allLoaded = false, isFetching = false;
+  let currentCategory = 'all';
+
+  // Category buttons
+  document.querySelectorAll('.cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentCategory = btn.dataset.cat;
+      loadVideos(true);
+    });
+  });
+
+  async function loadVideos(reset = false) {
+    if (allLoaded && !reset) return;
+    const grid = document.getElementById('video-grid');
+    if (reset) { grid.innerHTML = '<div class="loading"><div class="spinner"></div><span>Loading…</span></div>'; page = 0; allLoaded = false; }
+
+    try {
+      const videos = await API.getVideos(page, 20, currentCategory);
+      if (reset) grid.innerHTML = '';
+
+      if ((!videos || !videos.length) && page === 0) {
+        grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+          <div class="empty-icon">📺</div>
+          <div class="empty-title">No videos yet</div>
+          <div class="empty-text">Be the first to <a href="upload.html" style="color:var(--accent)">upload a video</a>!</div>
+        </div>`;
+        return;
+      }
+
+      if (videos.length < 20) { allLoaded = true; document.getElementById('load-more-btn').style.display = 'none'; }
+      else document.getElementById('load-more-btn').style.display = 'block';
+
+      videos.forEach(v => grid.appendChild(UI.videoCard(v)));
+      document.getElementById('video-count').textContent = `${page * 20 + videos.length} videos`;
+      page++;
+    } catch (e) {
+      console.error('Render error:', e);
+      if (reset) {
+        grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+          <div class="empty-icon">⚠️</div>
+          <div class="empty-title">Oops!</div>
+          <div class="empty-text">Could not load videos. Please try again.</div>
+        </div>`;
+      }
+    }
+  }
+
+  document.getElementById('load-more-btn').addEventListener('click', () => loadVideos());
+
+  // Initial load
+  loadVideos();
+
+  // Update hero CTA
+  if (Auth.isLoggedIn()) {
+    document.getElementById('hero-cta').href = 'upload.html';
+    document.getElementById('hero-cta').innerHTML = '<span class="material-icons">upload</span>Upload a Video';
+  }
+
+  UI.initNav();
+  loadVideos(true);
+</script>
+</body>
+</html>

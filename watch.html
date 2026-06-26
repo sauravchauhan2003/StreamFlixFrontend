@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watch – StreamFlix</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    .watch-page{max-width:1500px;margin:0 auto}
+    .sidebar-title{font-size:.875rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;padding:0 4px}
+    .video-actions{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);margin-bottom:14px}
+    .channel-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+    .ch-avatar{width:44px;height:44px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;color:#fff;flex-shrink:0}
+    #video-desc{cursor:pointer}
+    .expand-hint{font-size:.8rem;color:var(--accent-2);margin-top:8px}
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="nav" id="navbar">
+  <a href="index.html" class="nav-logo">StreamFlix</a>
+  <div class="nav-search">
+    <input id="nav-search-input" type="text" placeholder="Search videos…">
+    <button class="nav-search-btn" id="nav-search-btn"><span class="material-icons">search</span></button>
+  </div>
+  <div class="nav-actions">
+    <a href="upload.html"    class="btn btn-secondary"><span class="material-icons">upload</span></a>
+    <a href="auth.html"      class="btn btn-primary"   id="nav-login-btn">Login</a>
+    <div class="dropdown" id="nav-user" style="display:none">
+      <div class="avatar" id="nav-avatar"></div>
+      <div class="dropdown-menu" id="nav-dd-menu">
+        <a href="profile.html"   class="dd-item"><span class="material-icons">person</span>Profile</a>
+        <a href="analytics.html" class="dd-item"><span class="material-icons">bar_chart</span>Analytics</a>
+        <div class="dd-sep"></div>
+        <div class="dd-item" onclick="doLogout()"><span class="material-icons">logout</span>Logout</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="watch-page">
+  <div class="watch-layout">
+
+    <!-- ── Left: Player + Info ───────────────────────────────────────────────── -->
+    <div>
+      <!-- Video Player -->
+      <div class="player-wrap">
+        <video id="video-player" controls playsinline></video>
+      </div>
+
+      <!-- Video Info -->
+      <div class="video-info-box fade-up" id="video-info" style="display:none">
+        <h1 class="video-info-title" id="vid-title">Loading…</h1>
+        <div class="video-info-meta">
+          <span><span class="material-icons">visibility</span><span id="vid-views">0</span> views</span>
+          <span><span class="material-icons">calendar_today</span><span id="vid-date"></span></span>
+        </div>
+
+        <!-- Actions bar -->
+        <div class="video-actions">
+          <div class="interact-bar">
+            <button class="ibt" id="like-btn" onclick="doLike()">
+              <span class="material-icons">thumb_up</span>
+              <span id="like-count">0</span>
+            </button>
+            <button class="ibt" id="dislike-btn" onclick="doDislike()">
+              <span class="material-icons">thumb_down</span>
+              <span id="dislike-count">0</span>
+            </button>
+          </div>
+          <div style="display:flex;gap:8px">
+            <div class="quality-bar" id="quality-bar"></div>
+          </div>
+        </div>
+
+        <!-- Channel row -->
+        <div class="channel-row">
+          <div class="ch-avatar" id="ch-avatar">U</div>
+          <div>
+            <div style="font-weight:600" id="vid-uploader"></div>
+            <div style="font-size:.8125rem;color:var(--t2)">Creator</div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="video-desc card" id="video-desc" onclick="toggleDesc()">
+          <div id="vid-desc-text">—</div>
+          <div class="expand-hint" id="desc-hint">Show more ▼</div>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="comments-section" id="comments-section" style="margin-top: 24px;">
+          <h3 style="margin-bottom: 16px;">Comments</h3>
+          
+          <div id="comment-form-container" style="display: none; margin-bottom: 24px;">
+            <div style="display: flex; gap: 12px;">
+              <div class="ch-avatar" id="my-avatar" style="width: 40px; height: 40px; font-size: 1rem;">U</div>
+              <div style="flex-grow: 1;">
+                <textarea id="comment-input" placeholder="Add a comment..." style="width: 100%; min-height: 60px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg2); color: var(--t1); font-family: inherit; resize: vertical; margin-bottom: 8px;"></textarea>
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                  <button class="btn btn-secondary" onclick="document.getElementById('comment-input').value = ''">Cancel</button>
+                  <button class="btn btn-primary" onclick="submitComment()">Comment</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div id="comments-list">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading state -->
+      <div class="loading" id="loading-state">
+        <div class="spinner"></div><span>Loading video…</span>
+      </div>
+    </div>
+
+    <!-- ── Right: Related Videos ──────────────────────────────────────────────── -->
+    <div>
+      <div class="sidebar-title">Up Next</div>
+      <div id="related-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+  const params  = new URLSearchParams(window.location.search);
+  const videoId = params.get('id');
+  let hlsInstance = null;
+  let descExpanded = false;
+
+  if (!videoId) window.location.href = 'index.html';
+
+  async function init() {
+    UI.initNav();
+
+    // Load video metadata
+    const video = await API.getVideo(videoId);
+    if (!video) {
+      document.getElementById('loading-state').innerHTML = `
+        <div class="empty"><div class="empty-icon">😕</div>
+        <div class="empty-title">Video Not Found</div>
+        <a href="index.html" class="btn btn-primary" style="margin-top:12px">← Go Home</a></div>`;
+      return;
+    }
+
+    // Update page title
+    document.title = `${video.title} – StreamFlix`;
+
+    // Show info
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('video-info').style.display    = 'block';
+    document.getElementById('vid-title').textContent    = video.title;
+    document.getElementById('vid-views').textContent    = UI.fmtViews(video.views);
+    document.getElementById('vid-date').textContent     = UI.fmtDate(video.uploadedAt);
+    document.getElementById('vid-uploader').textContent = video.uploader;
+    document.getElementById('vid-desc-text').textContent= video.desc || 'No description';
+    document.getElementById('ch-avatar').textContent    = (video.uploader || 'U')[0].toUpperCase();
+
+    // Load interaction state & counts
+    loadInteractionState();
+
+    // Init HLS player
+    const playerEl = document.getElementById('video-player');
+    const src = API.hlsUrl(videoId);
+    if (Hls.isSupported()) {
+      hlsInstance = new Hls({ capLevelToPlayerSize: true });
+      hlsInstance.loadSource(src);
+      hlsInstance.attachMedia(playerEl);
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+        buildQualitySelector();
+        playerEl.play().catch(() => {});
+      });
+    } else if (playerEl.canPlayType('application/vnd.apple.mpegurl')) {
+      playerEl.src = src; // Safari native HLS
+    } else {
+      document.getElementById('loading-state').style.display = 'flex';
+      document.getElementById('loading-state').innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">HLS not supported</div><div class="empty-text">Try Chrome or Firefox</div></div>';
+    }
+
+    // Setup Comments
+    if (Auth.isLoggedIn()) {
+      document.getElementById('comment-form-container').style.display = 'block';
+      document.getElementById('my-avatar').textContent = (Auth.getUsername() || 'U')[0].toUpperCase();
+    }
+    loadComments();
+
+    // Load related videos
+    loadRelated();
+  }
+
+  async function loadInteractionState() {
+    const analytics = await API.getVideoAnalytics(videoId);
+    if (analytics) {
+      document.getElementById('like-count').textContent    = analytics.likes;
+      document.getElementById('dislike-count').textContent = analytics.dislikes;
+    }
+    if (Auth.isLoggedIn()) {
+      const interaction = await API.getMyInteraction(videoId);
+      updateInteractionUI(interaction?.type || 'NONE');
+    }
+  }
+
+  function updateInteractionUI(type) {
+    document.getElementById('like-btn').className    = 'ibt' + (type === 'LIKE'    ? ' liked'    : '');
+    document.getElementById('dislike-btn').className = 'ibt' + (type === 'DISLIKE' ? ' disliked' : '');
+  }
+
+  async function doLike() {
+    if (!Auth.isLoggedIn()) { window.location.href = 'auth.html'; return; }
+    const res = await API.toggleLike(videoId);
+    if (res) {
+      document.getElementById('like-count').textContent    = res.likes;
+      document.getElementById('dislike-count').textContent = res.dislikes;
+      const isNowLiked = res.action === 'liked';
+      updateInteractionUI(isNowLiked ? 'LIKE' : (res.action.includes('dislike') ? 'DISLIKE' : 'NONE'));
+    }
+  }
+
+  async function doDislike() {
+    if (!Auth.isLoggedIn()) { window.location.href = 'auth.html'; return; }
+    const res = await API.toggleDislike(videoId);
+    if (res) {
+      document.getElementById('like-count').textContent    = res.likes;
+      document.getElementById('dislike-count').textContent = res.dislikes;
+      const isNowDisliked = res.action === 'disliked';
+      updateInteractionUI(isNowDisliked ? 'DISLIKE' : (res.action.includes('like') ? 'LIKE' : 'NONE'));
+    }
+  }
+
+  function buildQualitySelector() {
+    if (!hlsInstance) return;
+    const bar = document.getElementById('quality-bar');
+    bar.innerHTML = '';
+    const levels = hlsInstance.levels;
+    if (!levels?.length) return;
+
+    const autoBtn = document.createElement('button');
+    autoBtn.className = 'q-btn active';
+    autoBtn.textContent = 'Auto';
+    autoBtn.onclick = () => {
+      hlsInstance.currentLevel = -1;
+      document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
+      autoBtn.classList.add('active');
+    };
+    bar.appendChild(autoBtn);
+
+    levels.forEach((lvl, i) => {
+      const h   = lvl.height || (i === 0 ? 240 : i === 1 ? 360 : i === 2 ? 720 : 1080);
+      const btn = document.createElement('button');
+      btn.className   = 'q-btn';
+      btn.textContent = h + 'p';
+      btn.onclick = () => {
+        hlsInstance.currentLevel = i;
+        document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      };
+      bar.appendChild(btn);
+    });
+  }
+
+  async function loadRelated() {
+    const list   = document.getElementById('related-list');
+    const videos = await API.getVideos(0, 10);
+    list.innerHTML = '';
+    videos.filter(v => v.id !== videoId).slice(0, 9).forEach(v => {
+      const a = document.createElement('a');
+      a.href      = API.watchUrl(v.id);
+      a.className = 'rel-item';
+      a.innerHTML = `
+        <div class="rel-thumb">
+          <img src="${API.thumbnailUrl(v.id)}" alt="${escHtml(v.title)}"
+               onerror="this.src='';this.style.display='none'">
+        </div>
+        <div class="rel-info">
+          <div class="rel-title">${escHtml(v.title)}</div>
+          <div class="rel-meta">${escHtml(v.uploader)} · ${UI.fmtViews(v.views)} views</div>
+        </div>`;
+      list.appendChild(a);
+    });
+    if (!list.children.length) list.innerHTML = '<div style="color:var(--t3);font-size:.875rem;padding:8px">No related videos</div>';
+  }
+
+  function toggleDesc() {
+    descExpanded = !descExpanded;
+    document.getElementById('video-desc').classList.toggle('expanded', descExpanded);
+    document.getElementById('desc-hint').textContent = descExpanded ? 'Show less ▲' : 'Show more ▼';
+  }
+
+  async function loadComments() {
+    const list = document.getElementById('comments-list');
+    const comments = await API.getComments(videoId);
+    list.innerHTML = '';
+    if (!comments || comments.length === 0) {
+      list.innerHTML = '<div style="color:var(--t3); padding: 12px 0;">No comments yet.</div>';
+      return;
+    }
+    comments.forEach(c => list.appendChild(createCommentElement(c)));
+  }
+
+  function createCommentElement(c) {
+    const div = document.createElement('div');
+    div.className = 'comment';
+    div.style.display = 'flex';
+    div.style.gap = '12px';
+    div.style.marginBottom = '20px';
+    
+    const isLiked = c.userInteraction === 'LIKE';
+    const isDisliked = c.userInteraction === 'DISLIKE';
+
+    div.innerHTML = `
+      <div class="ch-avatar" style="width: 40px; height: 40px; font-size: 1rem;">${(c.username || 'U')[0].toUpperCase()}</div>
+      <div>
+        <div style="margin-bottom: 4px;">
+          <span style="font-weight: 600; font-size: 0.9rem;">${escHtml(c.username)}</span>
+          <span style="color: var(--t3); font-size: 0.8rem; margin-left: 8px;">${UI.fmtDate(c.createdAt)}</span>
+        </div>
+        <div style="font-size: 0.95rem; margin-bottom: 8px; line-height: 1.4;">${escHtml(c.text)}</div>
+        <div class="interact-bar" style="background: transparent; padding: 0;">
+          <button class="ibt ${isLiked ? 'liked' : ''}" onclick="toggleCommentLike('${c.id}', this)" style="padding: 4px 8px; min-width: unset;">
+            <span class="material-icons" style="font-size: 16px;">thumb_up</span>
+            <span class="cnt">${c.likes}</span>
+          </button>
+          <button class="ibt ${isDisliked ? 'disliked' : ''}" onclick="toggleCommentDislike('${c.id}', this)" style="padding: 4px 8px; min-width: unset;">
+            <span class="material-icons" style="font-size: 16px;">thumb_down</span>
+            <span class="cnt">${c.dislikes}</span>
+          </button>
+        </div>
+      </div>
+    `;
+    return div;
+  }
+
+  async function submitComment() {
+    if (!Auth.isLoggedIn()) { window.location.href = 'auth.html'; return; }
+    const input = document.getElementById('comment-input');
+    const text = input.value.trim();
+    if (!text) return;
+    
+    const newComment = await API.addComment(videoId, text);
+    if (newComment) {
+      input.value = '';
+      const list = document.getElementById('comments-list');
+      if (list.querySelector('.loading') || list.textContent.includes('No comments')) {
+        list.innerHTML = '';
+      }
+      list.insertBefore(createCommentElement(newComment), list.firstChild);
+    }
+  }
+
+  async function toggleCommentLike(commentId, btn) {
+    if (!Auth.isLoggedIn()) { window.location.href = 'auth.html'; return; }
+    const res = await API.toggleCommentLike(commentId);
+    if (res) updateCommentUI(btn, res, 'like');
+  }
+
+  async function toggleCommentDislike(commentId, btn) {
+    if (!Auth.isLoggedIn()) { window.location.href = 'auth.html'; return; }
+    const res = await API.toggleCommentDislike(commentId);
+    if (res) updateCommentUI(btn, res, 'dislike');
+  }
+
+  function updateCommentUI(btn, res, clickedAction) {
+    const interactBar = btn.parentElement;
+    const likeBtn = interactBar.children[0];
+    const dislikeBtn = interactBar.children[1];
+    
+    likeBtn.querySelector('.cnt').textContent = res.likes;
+    dislikeBtn.querySelector('.cnt').textContent = res.dislikes;
+    
+    likeBtn.className = 'ibt' + (res.action.includes('like') && !res.action.includes('dislike') && res.action !== 'removed' && clickedAction === 'like' ? ' liked' : (res.action === 'changed_to_like' ? ' liked' : ''));
+    dislikeBtn.className = 'ibt' + (res.action.includes('dislike') && res.action !== 'removed' && clickedAction === 'dislike' ? ' disliked' : (res.action === 'changed_to_dislike' ? ' disliked' : ''));
+    
+    // Explicit overrides based on specific action text (simplified)
+    if (res.action === 'liked') { likeBtn.classList.add('liked'); dislikeBtn.classList.remove('disliked'); }
+    else if (res.action === 'disliked') { dislikeBtn.classList.add('disliked'); likeBtn.classList.remove('liked'); }
+    else if (res.action === 'removed') { likeBtn.classList.remove('liked'); dislikeBtn.classList.remove('disliked'); }
+    else if (res.action === 'changed_to_like') { likeBtn.classList.add('liked'); dislikeBtn.classList.remove('disliked'); }
+    else if (res.action === 'changed_to_dislike') { dislikeBtn.classList.add('disliked'); likeBtn.classList.remove('liked'); }
+  }
+
+  init();
+</script>
+</body>
+</html>
