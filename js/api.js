@@ -1,5 +1,5 @@
 /* ── Streamflix API Client ─────────────────────────────────────────────────── */
-const API_BASE = 'http://localhost:9010';
+const API_BASE = '/api';
 
 // ── Auth State ────────────────────────────────────────────────────────────────
 const Auth = {

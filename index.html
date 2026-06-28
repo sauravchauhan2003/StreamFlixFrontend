@@ -131,8 +131,7 @@
 
   document.getElementById('load-more-btn').addEventListener('click', () => loadVideos());
 
-  // Initial load
-  loadVideos();
+  // Initial load removed to prevent race condition with the loadVideos(true) call below
 
   // Update hero CTA
   if (Auth.isLoggedIn()) {
